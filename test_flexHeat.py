@@ -1,6 +1,7 @@
 import time
 import PID
 
+# District heating
 class DistrictHeating:
     def __init__(self):
         self.outside_temperature = 0

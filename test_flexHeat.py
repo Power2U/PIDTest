@@ -92,7 +92,7 @@ class BuildingTemp:
         # building thermal_capacity: kWh/degree
         # Update indoor temperature by adding the temperature change due to net heat gain
         
-        self.last_indoor_temperature += (self.disctrict_heating_gain + self.solar_gain - self.heat_loss) / self.thermal_capacity
+        self.last_indoor_temperature += (self.district_heating_gain + self.solar_gain - self.heat_loss) / self.thermal_capacity
 
         self.last_time = self.current_time
         
@@ -112,7 +112,7 @@ class BuildingTemp:
 
 # The method is used to simulate manipulated inflow temperature base don PID logic
 
-def run(building_simulation, district_heating_ini, time_ratio, P, I, D, set_point, sample_time, total_sampling,\
+def run_building_sim(building_simulation, district_heating_ini, time_ratio, P, I, D, set_point, sample_time, total_sampling,\
         solar_radiance, water_capacity, water_densidty):
 
     pid = PID.PID(P, I, D)
@@ -170,7 +170,7 @@ def run(building_simulation, district_heating_ini, time_ratio, P, I, D, set_poin
     plt.figure(1)
     plt.subplot(311)
     plt.plot(time_list, feedback_list, 'b--')
-    plt.hlines(20, 1, len(time_list), 'red')
+    plt.hlines(set_point, 1, len(time_list), 'red')
     plt.ylabel('$^\circ$C').set_rotation(0)
     plt.title('indoor temperature')
     
@@ -187,7 +187,85 @@ def run(building_simulation, district_heating_ini, time_ratio, P, I, D, set_poin
     plt.subplots_adjust(hspace=0.5)
 
     plt.show()
-            
+
+def run_building_sim_range(building_simulation, district_heating_ini, time_ratio, P, I, D, upLim, lowLim, sample_time, total_sampling,\
+        solar_radiance, water_capacity, water_densidty):
+
+    pid = PID.PID(P, I, D)
+    
+    pid.upLim = upLim
+    pid.lowLim = lowLim
+    pid.setSampleTime(sample_time) 
+    pid.windup_guard = windup_guard  
+    
+    # Initiate indoor temperature
+    
+    feedback = district_heating_ini.average_indoor_temperature
+        
+    feedback_list = []
+    time_list = []
+    output_list = []
+    inflow_temp_list = []
+    
+    print("start testing....")
+    
+    for i in range(1, total_sampling):
+        
+        # Update manipulated_inflow_temperature based on PID output  
+          
+        pid.update_range(feedback)
+        output = pid.output
+        manipulated_inflow_temperature = district_heating_ini.district_inflow_temperature + output
+        
+        # manipulated_inflow_temperature has upper and lower limits
+        
+        if manipulated_inflow_temperature > district_heating_ini.inflow_temp_max:
+            district_heating_ini.district_inflow_temperature = district_heating_ini.inflow_temp_max   
+        elif manipulated_inflow_temperature < district_heating_ini.inflow_temp_min:
+            district_heating_ini.district_inflow_temperature = district_heating_ini.inflow_temp_min
+        else:
+            district_heating_ini.district_inflow_temperature = manipulated_inflow_temperature
+       
+        # Simulate indoor temperature for next time point based on manipulated_inflow_temperature
+        
+        feedback = building_simulation.computeTemperature(time_ratio, solar_radiance, water_capacity, water_densidty, district_heating_ini)      
+        
+        time.sleep(0.02)
+    
+        feedback_list.append(feedback)
+        output_list.append(output)
+        time_list.append(i)
+        inflow_temp_list.append(district_heating_ini.district_inflow_temperature)
+        
+    print(feedback_list)
+    print(output_list)
+    print(time_list)
+    print(inflow_temp_list)
+
+    # plot results
+
+    plt.figure(1)
+    plt.subplot(311)
+    plt.plot(time_list, feedback_list, 'b--')
+    plt.hlines(upLim, 1, len(time_list), 'red')
+    plt.hlines(lowLim, 1, len(time_list), 'red')
+
+    plt.ylabel('$^\circ$C').set_rotation(0)
+    plt.title('indoor temperature')
+    
+    plt.subplot(312)
+    plt.plot(time_list, output_list, 'b--')
+    plt.ylabel('$^\circ$C').set_rotation(0)
+    plt.title('PID output')
+    
+    plt.subplot(313)
+    plt.plot(time_list, inflow_temp_list, 'b--')
+    plt.ylabel('$^\circ$C').set_rotation(0)
+    plt.title('Manipulated inflow temperature')
+
+    plt.subplots_adjust(hspace=0.5)
+
+    plt.show()            
 # The method shows an example for test
 
 if __name__ == "__main__":
@@ -198,37 +276,40 @@ if __name__ == "__main__":
     district_heating_ini.setAverageIndoorTemperature(19)
     district_heating_ini.setDistrictInflowTemperature(60)
     district_heating_ini.setDistrictOutflowTemperature(30)
-    district_heating_ini.setDistrictInflow(0.01)
-    district_heating_ini.setTotalInflow(10)
-    district_heating_ini.setInflowTempMax(70)
-    district_heating_ini.setInflowTempMin(50)
+    district_heating_ini.setTotalInflow(0.01)
+    district_heating_ini.setInflowTempMax(80)
+    district_heating_ini.setInflowTempMin(40)
 
 # Initiate a building envelope
     
     building_simulation = BuildingTemp(district_heating_ini)
-    building_simulation.setThermalCapacity(10)
-    building_simulation.setThermalConductivity(0)
+    building_simulation.setThermalCapacity(120)
+    building_simulation.setThermalConductivity(90)
     building_simulation.setGFactor(0.15)
     building_simulation.setIrradiateArea(40)
 
 # Initiate parameters
 
     P = 2
-    I = 0
+    I = 1
     D = 0
     sample_time = 0.01
-    total_sampling = 100
+    total_sampling = 24 * 4 * 2
     windup_guard = 10
     
     set_point = 20
-    time_ratio = 30 * 60 / 0.02 / 3600
+    upLim = 22
+    lowLim = 18
+    time_ratio = 15 * 60 / 0.02 / 3600
 
-    solar_radiance = 0.1
+    solar_radiance = 0
     water_capacity = 4186 /1000 
     water_density = 997
     
-    run(building_simulation, district_heating_ini, time_ratio, P, I, D, set_point, sample_time, total_sampling, \
+    run_building_sim(building_simulation, district_heating_ini, time_ratio, P, I, D, set_point, sample_time, total_sampling, \
         solar_radiance, water_capacity, water_density)
     
+#    run_building_sim_range(building_simulation, district_heating_ini, time_ratio, P, I, D, upLim, lowLim, sample_time, total_sampling, \
+#        solar_radiance, water_capacity, water_density)    
 
     print("finish")

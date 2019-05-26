@@ -25,6 +25,8 @@ class PID:
     def clear(self):
         """Clears PID computations and coefficients"""
         self.SetPoint = 0.0
+        self.upLim = 0
+        self.lowLim = 0
 
         self.PTerm = 0.0
         self.ITerm = 0.0
@@ -64,6 +66,40 @@ class PID:
             self.last_error = error
 
             self.output = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)
+            
+    def update_range(self, feedback_value):
+        #Calculates PID value for given reference feedback
+
+        error = 0
+        
+        if feedback_value > self.upLim:
+            error = self.upLim - feedback_value
+            
+        elif feedback_value < self.lowLim:
+            error = self.lowLim - feedback_value
+
+        self.current_time = time.time()
+        delta_time = self.current_time - self.last_time
+        delta_error = error - self.last_error
+
+        if (delta_time >= self.sample_time):
+            self.PTerm = self.Kp * error
+            self.ITerm += error * delta_time
+
+            if (self.ITerm < -self.windup_guard):
+                self.ITerm = -self.windup_guard
+            elif (self.ITerm > self.windup_guard):
+                self.ITerm = self.windup_guard
+
+            self.DTerm = 0.0
+            if delta_time > 0:
+                self.DTerm = delta_error / delta_time
+
+            # Remember last time and last error for next calculation
+            self.last_time = self.current_time
+            self.last_error = error
+
+            self.output = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)        
 
     def setKp(self, proportional_gain):
         """Determines how aggressively the PID reacts to the current error with setting Proportional Gain"""

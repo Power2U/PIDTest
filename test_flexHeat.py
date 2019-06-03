@@ -14,7 +14,7 @@ class DistrictHeating:
         self.current_time = time.time()
         self.last_time = self.current_time
         self.inflow_temp_max = 0
-        self.infleow_temp_min = 0
+        self.inflow_temp_min = 0
     
     def setOutsideTemperature(self, outside_temperature):
         self.outside_temperature = outside_temperature
@@ -294,7 +294,7 @@ if __name__ == "__main__":
     I = 1
     D = 0
     sample_time = 0.01
-    total_sampling = 24 * 4 * 2
+    total_sampling = 24 * 4
     windup_guard = 10
     
     set_point = 20

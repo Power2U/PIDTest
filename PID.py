@@ -1,6 +1,7 @@
+# This script is modified based on following work:
 
-# This file is part of IvPID.
-# Copyright (C) 2015 Ivmech Mechatronics Ltd. <bilgi@ivmech.com>
+    # This file is part of IvPID.
+    # Copyright (C) 2015 Ivmech Mechatronics Ltd. <bilgi@ivmech.com>
 
 # ==============================================================================
 
@@ -18,12 +19,13 @@ class PID:
 
         self.sample_time = 0.00
         self.current_time = time.time()
-        self.last_time = self.current_time
+        self.last_time = 0
+        self.time_ratio = 1
 
         self.clear()
-
+        
     def clear(self):
-        """Clears PID computations and coefficients"""
+        """Clears PID computations and coefficients"""  
         self.SetPoint = 0.0
         self.upLim = 0
         self.lowLim = 0
@@ -40,12 +42,13 @@ class PID:
         self.output = 0.0
 
     def update(self, feedback_value):
-        #Calculates PID value for given reference feedback
-
+        
+        #Calculates PID value for given reference feedback        
         error = self.SetPoint - feedback_value
 
         self.current_time = time.time()
         delta_time = self.current_time - self.last_time
+        delta_time = delta_time * self.time_ratio
         delta_error = error - self.last_error
 
         if (delta_time >= self.sample_time):
@@ -68,6 +71,7 @@ class PID:
             self.output = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)
             
     def update_range(self, feedback_value):
+  
         #Calculates PID value for given reference feedback
 
         error = 0
@@ -130,3 +134,6 @@ class PID:
         Based on a pre-determined sampe time, the PID decides if it should compute or return immediately.
         """
         self.sample_time = sample_time
+        
+    def setTimeRatio(self, time_ratio):
+        self.time_ratio = time_ratio

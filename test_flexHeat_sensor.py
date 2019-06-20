@@ -26,8 +26,7 @@ class Sensor:
         self.temperature_sensor_2 += deviation_sensor_2
     
     # The feedback to PID is considered as the average values of the two sensors
-    # Other methods for calculating feedback could be designed here
-    
+    # Other methods for calculating feedback could be designed here    
     def setFeedback(self):
         
         if self.temperature_sensor_1 is None:
@@ -92,12 +91,10 @@ def run(sensor, district_heating_ini, P, I, D, set_point, sample_time):
     pid.update(feedback)
     output = pid.output
     
-    # Update district_inflow_temperature based on PID output  
-    
+    # Update district_inflow_temperature based on PID output      
     district_heating_ini.district_inflow_temperature += output
         
-    # manipulated_inflow_temperature has upper and lower limits
-        
+    # manipulated_inflow_temperature has upper and lower limits        
     if district_heating_ini.district_inflow_temperature > district_heating_ini.inflow_temp_max:
         district_heating_ini.district_inflow_temperature = district_heating_ini.inflow_temp_max   
     elif district_heating_ini.district_inflow_temperature < district_heating_ini.inflow_temp_min:
@@ -112,15 +109,14 @@ def run(sensor, district_heating_ini, P, I, D, set_point, sample_time):
 
 if __name__ == "__main__":
 
-    # Initiate a district heating system 
-    # Input: district_inflow temperature, inflow_temp_max, inflow_temp_min
-       
+    # Initialize a district heating system 
+    # Input: district_inflow temperature, inflow_temp_max, inflow_temp_min       
     district_heating_ini = DistrictHeating()
     district_heating_ini.setDistrictInflowTemperature(60)
     district_heating_ini.setInflowTempMax(70)
     district_heating_ini.setInflowTempMin(50)
 
-    # Initiate a sensor measurement
+    # Set a sensor measurement
     # Input: temperature_sensor_1, temperature_sensor_2, time_sensor_1, time_sensor_2
     # Introduce a random value to simulate indoor temperature dynamics
 
@@ -131,9 +127,8 @@ if __name__ == "__main__":
     sensor.setTemperatureSensor2(deviation_sensor_2)
     sensor.setFeedback()
 
-    # Initiate parameters
-
-    P = 2
+    # Set parameters
+    P = -2
     I = 1
     D = 0
     sample_time = 0.01    
